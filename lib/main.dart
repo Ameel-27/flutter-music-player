@@ -1,0 +1,228 @@
+import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+void main() {
+  runApp(MyApp());
+}
+
+class Song {
+  final String title;
+  final String url;
+  final String thumbnail;
+
+  Song({required this.title, required this.url, required this.thumbnail});
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: "Music Player",
+      theme: ThemeData.dark(),
+      home: PlayerScreen(),
+    );
+  }
+}
+
+class PlayerScreen extends StatefulWidget {
+  const PlayerScreen({super.key});
+
+  @override
+  _PlayerScreenState createState() => _PlayerScreenState();
+}
+
+class _PlayerScreenState extends State<PlayerScreen> {
+  final TextEditingController controller = TextEditingController();
+  final AudioPlayer player = AudioPlayer();
+
+  List<Song> queue = [];
+  Song? currentSong;
+
+  Duration position = Duration.zero;
+  Duration duration = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+
+    player.positionStream.listen((p) {
+      setState(() => position = p);
+    });
+
+    player.durationStream.listen((d) {
+      if (d != null) setState(() => duration = d);
+    });
+
+    player.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        playNext();
+      }
+    });
+  }
+
+  Future<void> searchAndAdd(String query) async {
+    final response = await http.get(
+      Uri.parse("http://bardi.fsc-clan.eu/search?query=$query"),
+    );
+
+    final data = json.decode(response.body);
+
+    if (data["error"] != null) {
+      print("Error: ${data["error"]}");
+      return;
+    }
+
+    final song = Song(
+      title: data["title"],
+      url: data["audio_url"],
+      thumbnail: data["thumbnail"],
+    );
+
+    setState(() {
+      queue.add(song);
+    });
+
+    if (currentSong == null) {
+      playNext();
+    }
+  }
+
+  Future<void> playNext() async {
+    if (queue.isEmpty) {
+      setState(() => currentSong = null);
+      return;
+    }
+
+    final next = queue.removeAt(0);
+
+    setState(() {
+      currentSong = next;
+    });
+
+    try {
+      await player.setUrl(next.url);
+      player.play();
+    } catch (e) {
+      print("AUDIO LOAD ERROR: $e");
+    }
+  }
+
+  void togglePlayPause() {
+    if (player.playing) {
+      player.pause();
+    } else {
+      player.play();
+    }
+  }
+
+  void stop() {
+    player.stop();
+    setState(() {
+      currentSong = null;
+    });
+  }
+
+  String format(Duration d) {
+    return "${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}";
+  }
+
+  @override
+  void dispose() {
+    player.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("🎵 Aleem's Player")),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: "Search song...",
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.search),
+                  onPressed: () {
+                    searchAndAdd(controller.text);
+                    controller.clear();
+                  },
+                ),
+              ),
+            ),
+
+            SizedBox(height: 20),
+
+            if (currentSong != null) ...[
+              Image.network(currentSong!.thumbnail, height: 150),
+              Text(currentSong!.title, maxLines: 2),
+
+              Slider(
+                value: position.inSeconds.toDouble(),
+                max: duration.inSeconds.toDouble() == 0 ? 1 : duration.inSeconds.toDouble(),
+                onChanged: (value) {
+                  player.seek(Duration(seconds: value.toInt()));
+                },
+              ),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(format(position)),
+                  Text(format(duration)),
+                ],
+              ),
+            ],
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.skip_next),
+                  onPressed: playNext,
+                ),
+                IconButton(
+                  icon: Icon(
+                      player.playing ? Icons.pause : Icons.play_arrow),
+                  onPressed: togglePlayPause,
+                ),
+                IconButton(
+                  icon: Icon(Icons.stop),
+                  onPressed: stop,
+                ),
+              ],
+            ),
+
+            Divider(),
+
+            Expanded(
+              child: ListView.builder(
+                itemCount: queue.length,
+                itemBuilder: (context, index) {
+                  final song = queue[index];
+                  return ListTile(
+                    title: Text(song.title),
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete),
+                      onPressed: () {
+                        setState(() => queue.removeAt(index));
+                      },
+                    ),
+                  );
+                },
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
