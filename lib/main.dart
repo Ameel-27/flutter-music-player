@@ -71,7 +71,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse("http://127.0.0.1:3000/search?query=$query"),
+        Uri.parse("http://bardi.fsc-clan.eu/search?query=$query"),
       );
 
       final data = json.decode(response.body);
@@ -104,6 +104,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Future<void> playNext() async {
     if (queue.isEmpty) {
       setState(() => currentSong = null);
+      player.stop();
       return;
     }
 
@@ -122,6 +123,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   void togglePlayPause() {
+    if (currentSong == null) return;
+    
     if (player.playing) {
       player.pause();
     } else {
