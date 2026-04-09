@@ -67,6 +67,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Future<void> searchAndAdd(String query) async {
+    if (queue.length >= 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Queue is full! Maximum 10 songs allowed."),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
     setState(() => isSearching = true);
 
     try {
@@ -103,8 +113,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> playNext() async {
     if (queue.isEmpty) {
-      setState(() => currentSong = null);
-      player.stop();
+      stop();
       return;
     }
 
@@ -124,7 +133,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   void togglePlayPause() {
     if (currentSong == null) return;
-    
+
     if (player.playing) {
       player.pause();
     } else {
@@ -132,10 +141,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  void stop() {
-    player.stop();
+  void stop() async {
+    await player.stop();
+    await player.setUrl("");
+
     setState(() {
       currentSong = null;
+      position = Duration.zero;
+      duration = Duration.zero;
     });
   }
 
