@@ -226,6 +226,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 itemBuilder: (context, index) {
                   final song = queue[index];
                   return ListTile(
+                    leading: Image.network(
+                      song.thumbnail,
+                      width: 65,
+                      height: 65,
+                    ),
                     title: Text(
                       song.title,
                       maxLines: 2,
