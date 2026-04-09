@@ -226,7 +226,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 itemBuilder: (context, index) {
                   final song = queue[index];
                   return ListTile(
-                    title: Text(song.title),
+                    title: Text(
+                      song.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     trailing: IconButton(
                       icon: Icon(Icons.delete),
                       onPressed: () {
