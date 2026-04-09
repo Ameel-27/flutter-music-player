@@ -160,10 +160,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 hintText: "Search song...",
                 suffixIcon: IconButton(
                   icon: Icon(Icons.search),
-                  onPressed: () {
-                    searchAndAdd(controller.text);
-                    controller.clear();
-                  },
+                  onPressed: isSearching
+                      ? null
+                      : () {
+                          searchAndAdd(controller.text);
+                          controller.clear();
+                        },
                 ),
               ),
             ),
