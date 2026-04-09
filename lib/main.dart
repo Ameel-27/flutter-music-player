@@ -155,7 +155,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
         child: Column(
           children: [
             TextField(
+              enabled: !isSearching,
               controller: controller,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (value) {
+                final query = value.trim();
+                if (query.isEmpty || isSearching) return;
+                searchAndAdd(value);
+                controller.clear();
+              },
               decoration: InputDecoration(
                 hintText: "Search song...",
                 suffixIcon: IconButton(
@@ -163,6 +171,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   onPressed: isSearching
                       ? null
                       : () {
+                          final query = controller.text.trim();
+                          if (query.isEmpty || isSearching) return;
                           searchAndAdd(controller.text);
                           controller.clear();
                         },
