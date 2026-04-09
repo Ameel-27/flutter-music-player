@@ -39,6 +39,7 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen> {
   final TextEditingController controller = TextEditingController();
   final AudioPlayer player = AudioPlayer();
+  bool isSearching = false;
 
   List<Song> queue = [];
   Song? currentSong;
@@ -66,29 +67,37 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Future<void> searchAndAdd(String query) async {
-    final response = await http.get(
-      Uri.parse("http://bardi.fsc-clan.eu/search?query=$query"),
-    );
+    setState(() => isSearching = true);
 
-    final data = json.decode(response.body);
+    try {
+      final response = await http.get(
+        Uri.parse("http://127.0.0.1:3000/search?query=$query"),
+      );
 
-    if (data["error"] != null) {
-      print("Error: ${data["error"]}");
-      return;
-    }
+      final data = json.decode(response.body);
 
-    final song = Song(
-      title: data["title"],
-      url: data["audio_url"],
-      thumbnail: data["thumbnail"],
-    );
+      if (data["error"] != null) {
+        print("Error: ${data["error"]}");
+        return;
+      }
 
-    setState(() {
-      queue.add(song);
-    });
+      final song = Song(
+        title: data["title"],
+        url: data["audio_url"],
+        thumbnail: data["thumbnail"],
+      );
 
-    if (currentSong == null) {
-      playNext();
+      setState(() {
+        queue.add(song);
+      });
+
+      if (currentSong == null) {
+        playNext();
+      }
+    } catch (e) {
+      print("Search error: $e");
+    } finally {
+      setState(() => isSearching = false);
     }
   }
 
@@ -140,7 +149,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("🎵 Aleem's Player")),
+      appBar: AppBar(title: Text("🎵 Music Player")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -161,13 +170,29 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
             SizedBox(height: 20),
 
+            if (isSearching) ...[
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 10),
+                  Text("Searching..."),
+                ],
+              ),
+            ],
+
+            SizedBox(height: 20),
+
             if (currentSong != null) ...[
               Image.network(currentSong!.thumbnail, height: 150),
               Text(currentSong!.title, maxLines: 2),
 
               Slider(
                 value: position.inSeconds.toDouble(),
-                max: duration.inSeconds.toDouble() == 0 ? 1 : duration.inSeconds.toDouble(),
+                max: duration.inSeconds.toDouble() == 0
+                    ? 1
+                    : duration.inSeconds.toDouble(),
                 onChanged: (value) {
                   player.seek(Duration(seconds: value.toInt()));
                 },
@@ -175,29 +200,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(format(position)),
-                  Text(format(duration)),
-                ],
+                children: [Text(format(position)), Text(format(duration))],
               ),
             ],
 
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                IconButton(icon: Icon(Icons.skip_next), onPressed: playNext),
                 IconButton(
-                  icon: Icon(Icons.skip_next),
-                  onPressed: playNext,
-                ),
-                IconButton(
-                  icon: Icon(
-                      player.playing ? Icons.pause : Icons.play_arrow),
+                  icon: Icon(player.playing ? Icons.pause : Icons.play_arrow),
                   onPressed: togglePlayPause,
                 ),
-                IconButton(
-                  icon: Icon(Icons.stop),
-                  onPressed: stop,
-                ),
+                IconButton(icon: Icon(Icons.stop), onPressed: stop),
               ],
             ),
 
@@ -219,7 +234,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   );
                 },
               ),
-            )
+            ),
           ],
         ),
       ),
