@@ -154,6 +154,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            if (isSearching) ...[
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 10),
+                  Text("Searching..."),
+                ],
+              ),
+              SizedBox(height: 10),
+            ],
+
             TextField(
               enabled: !isSearching,
               controller: controller,
@@ -179,20 +192,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ),
               ),
             ),
-
-            SizedBox(height: 20),
-
-            if (isSearching) ...[
-              SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(width: 10),
-                  Text("Searching..."),
-                ],
-              ),
-            ],
 
             SizedBox(height: 20),
 
