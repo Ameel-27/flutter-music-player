@@ -234,12 +234,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(icon: Icon(Icons.skip_next), onPressed: playNext),
+                IconButton(
+                  icon: Icon(Icons.skip_next),
+                  onPressed: currentSong == null && queue.isEmpty ? null : playNext,
+                ),
                 IconButton(
                   icon: Icon(player.playing ? Icons.pause : Icons.play_arrow),
-                  onPressed: togglePlayPause,
+                  onPressed: currentSong == null ? null : togglePlayPause,
                 ),
-                IconButton(icon: Icon(Icons.stop), onPressed: stop),
+                IconButton(
+                  icon: Icon(Icons.stop),
+                  onPressed: currentSong == null ? null : stop,
+                ),
               ],
             ),
 
