@@ -41,6 +41,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   final TextEditingController controller = TextEditingController();
   final AudioPlayer player = AudioPlayer();
   bool isSearching = false;
+  Song? preloadedSong;
 
   List<Song> queue = [];
   Song? currentSong;
@@ -103,8 +104,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
       });
 
       if (currentSong == null) {
-        playNext();
+        playNext().then((_) => preloadNext());
       }
+
     } catch (e) {
       print("Search error: $e");
     } finally {
@@ -113,12 +115,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Future<void> playNext() async {
-    if (queue.isEmpty) {
+    if (queue.isEmpty && preloadedSong == null) {
       stop();
       return;
     }
 
-    final next = queue.removeAt(0);
+    Song next;
+    if (preloadedSong != null) {
+      next = preloadedSong!;
+      preloadedSong = null;
+    } else {
+      next = queue.removeAt(0);
+    }
 
     setState(() {
       currentSong = next;
@@ -127,8 +135,25 @@ class _PlayerScreenState extends State<PlayerScreen> {
     try {
       await player.setUrl(next.url);
       player.play();
+
+      preloadNext();
     } catch (e) {
       print("AUDIO LOAD ERROR: $e");
+    }
+  }
+
+  Future<void> preloadNext() async {
+    if (queue.isEmpty) return;
+
+    final next = queue.first;
+
+    try {
+      await player.setUrl(next.url);
+
+      preloadedSong = next;
+    } catch (e) {
+      print("Preload error: $e");
+      preloadedSong = null;
     }
   }
 
@@ -248,7 +273,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   icon: Icon(Icons.skip_next),
                   onPressed: currentSong == null && queue.isEmpty
                       ? null
-                      : playNext,
+                      : () async {
+                          await playNext();
+                          await preloadNext();
+                        },
                 ),
                 IconButton(
                   icon: Icon(player.playing ? Icons.pause : Icons.play_arrow),
