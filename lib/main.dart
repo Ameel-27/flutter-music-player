@@ -259,148 +259,153 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("🎵 Music Player")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            if (isSearching) ...[
-              SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(width: 10),
-                  Text("Searching..."),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                if (isSearching) ...[
+                  SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(width: 10),
+                      Text("Searching..."),
+                    ],
+                  ),
+                  SizedBox(height: 10),
                 ],
-              ),
-              SizedBox(height: 10),
-            ],
 
-            TextField(
-              enabled: !isSearching,
-              controller: controller,
-              textInputAction: TextInputAction.search,
-              onSubmitted: (value) {
-                final query = value.trim();
-                if (query.isEmpty || isSearching) return;
-                searchAndAdd(value);
-                controller.clear();
-              },
-              decoration: InputDecoration(
-                hintText: "Search song...",
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
-                  onPressed: isSearching
-                      ? null
-                      : () {
-                          final query = controller.text.trim();
-                          if (query.isEmpty || isSearching) return;
-                          searchAndAdd(controller.text);
-                          controller.clear();
-                        },
+                TextField(
+                  enabled: !isSearching,
+                  controller: controller,
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: (value) {
+                    final query = value.trim();
+                    if (query.isEmpty || isSearching) return;
+                    searchAndAdd(value);
+                    controller.clear();
+                  },
+                  decoration: InputDecoration(
+                    hintText: "Search song...",
+                    suffixIcon: IconButton(
+                      icon: Icon(Icons.search),
+                      onPressed: isSearching
+                          ? null
+                          : () {
+                              final query = controller.text.trim();
+                              if (query.isEmpty || isSearching) return;
+                              searchAndAdd(controller.text);
+                              controller.clear();
+                            },
+                    ),
+                  ),
                 ),
-              ),
-            ),
 
-            SizedBox(height: 20),
+                SizedBox(height: 20),
 
-            if (currentSong != null) ...[
-              if (isBuffering) ...{
+                if (currentSong != null) ...[
+                  if (isBuffering) ...{
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        SizedBox(width: 10),
+                        Text("Buffering..."),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                  },
+                  CachedNetworkImage(
+                    imageUrl: currentSong!.thumbnail,
+                    height: 150,
+                    errorWidget: (context, url, error) => Icon(Icons.error),
+                  ),
+
+                  Text(
+                    currentSong!.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  Slider(
+                    value: position.inSeconds.toDouble(),
+                    max: duration.inSeconds.toDouble() == 0
+                        ? 1
+                        : duration.inSeconds.toDouble(),
+                    onChanged: (value) {
+                      player.seek(Duration(seconds: value.toInt()));
+                    },
+                  ),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [Text(format(position)), Text(format(duration))],
+                  ),
+                ],
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                    IconButton(
+                      icon: Icon(Icons.skip_next),
+                      onPressed: currentSong == null && queue.isEmpty
+                          ? null
+                          : () async {
+                              await playNext();
+                              await preloadNext();
+                            },
                     ),
-                    SizedBox(width: 10),
-                    Text("Buffering..."),
+                    IconButton(
+                      icon: Icon(
+                        player.playing ? Icons.pause : Icons.play_arrow,
+                      ),
+                      onPressed: currentSong == null ? null : togglePlayPause,
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.stop),
+                      onPressed: currentSong == null ? null : stop,
+                    ),
                   ],
                 ),
-                SizedBox(height: 20),
-              },
-              CachedNetworkImage(
-                imageUrl: currentSong!.thumbnail,
-                height: 150,
-                errorWidget: (context, url, error) => Icon(Icons.error),
-              ),
 
-              Text(
-                currentSong!.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+                Divider(),
 
-              Slider(
-                value: position.inSeconds.toDouble(),
-                max: duration.inSeconds.toDouble() == 0
-                    ? 1
-                    : duration.inSeconds.toDouble(),
-                onChanged: (value) {
-                  player.seek(Duration(seconds: value.toInt()));
-                },
-              ),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [Text(format(position)), Text(format(duration))],
-              ),
-            ],
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.skip_next),
-                  onPressed: currentSong == null && queue.isEmpty
-                      ? null
-                      : () async {
-                          await playNext();
-                          await preloadNext();
+                ListView.builder(
+                  itemCount: queue.length,
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    final song = queue[index];
+                    return ListTile(
+                      leading: CachedNetworkImage(
+                        imageUrl: song.thumbnail,
+                        width: 65,
+                        height: 65,
+                      ),
+                      title: Text(
+                        song.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () {
+                          setState(() => queue.removeAt(index));
                         },
-                ),
-                IconButton(
-                  icon: Icon(player.playing ? Icons.pause : Icons.play_arrow),
-                  onPressed: currentSong == null ? null : togglePlayPause,
-                ),
-                IconButton(
-                  icon: Icon(Icons.stop),
-                  onPressed: currentSong == null ? null : stop,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
-
-            Divider(),
-
-            Expanded(
-              child: ListView.builder(
-                itemCount: queue.length,
-                itemBuilder: (context, index) {
-                  final song = queue[index];
-                  return ListTile(
-                    leading: CachedNetworkImage(
-                      imageUrl: song.thumbnail,
-                      width: 65,
-                      height: 65,
-                      fit: BoxFit.cover,
-                    ),
-                    title: Text(
-                      song.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () {
-                        setState(() => queue.removeAt(index));
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
