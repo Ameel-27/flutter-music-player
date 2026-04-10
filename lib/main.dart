@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:cached_network_image/cached_network_image.dart';
 
 void main() {
   runApp(MyApp());
@@ -212,7 +213,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
             SizedBox(height: 20),
 
             if (currentSong != null) ...[
-              Image.network(currentSong!.thumbnail, height: 150),
+              CachedNetworkImage(
+                imageUrl: currentSong!.thumbnail,
+                height: 150,
+                errorWidget: (context, url, error) => Icon(Icons.error),
+              ),
+
               Text(
                 currentSong!.title,
                 maxLines: 2,
@@ -263,10 +269,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 itemBuilder: (context, index) {
                   final song = queue[index];
                   return ListTile(
-                    leading: Image.network(
-                      song.thumbnail,
+                    leading: CachedNetworkImage(
+                      imageUrl: song.thumbnail,
                       width: 65,
                       height: 65,
+                      fit: BoxFit.cover,
                     ),
                     title: Text(
                       song.title,
