@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:convert';
+import 'dart:async';
 
 void main() {
   runApp(MyApp());
@@ -25,7 +26,65 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: "Music Player",
       theme: ThemeData.dark(),
-      home: PlayerScreen(),
+      home: SplashScreen(),
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    Timer(const Duration(seconds: 3), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const PlayerScreen()),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.black, Colors.deepPurple],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedOpacity(
+              opacity: 1,
+              duration: Duration(seconds: 1),
+              child: Image.asset("assets/images/app_logo.png", width: 150),
+            ),
+
+            const SizedBox(height: 20),
+
+            const Text(
+              "Aleems Music",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 30),
+
+            const CircularProgressIndicator(),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -246,7 +305,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             SizedBox(height: 20),
 
             if (currentSong != null) ...[
-              if (isBuffering)...{
+              if (isBuffering) ...{
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
