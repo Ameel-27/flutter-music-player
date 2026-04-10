@@ -143,7 +143,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   void stop() async {
     await player.stop();
-    await player.setUrl("");
+    await player.seek(Duration.zero);
 
     setState(() {
       currentSong = null;
@@ -213,7 +213,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
             if (currentSong != null) ...[
               Image.network(currentSong!.thumbnail, height: 150),
-              Text(currentSong!.title, maxLines: 2),
+              Text(
+                currentSong!.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
 
               Slider(
                 value: position.inSeconds.toDouble(),
@@ -236,7 +240,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
               children: [
                 IconButton(
                   icon: Icon(Icons.skip_next),
-                  onPressed: currentSong == null && queue.isEmpty ? null : playNext,
+                  onPressed: currentSong == null && queue.isEmpty
+                      ? null
+                      : playNext,
                 ),
                 IconButton(
                   icon: Icon(player.playing ? Icons.pause : Icons.play_arrow),
