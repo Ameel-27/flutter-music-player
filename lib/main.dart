@@ -40,14 +40,17 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen> {
   final TextEditingController controller = TextEditingController();
   final AudioPlayer player = AudioPlayer();
-  bool isSearching = false;
-  Song? preloadedSong;
 
   List<Song> queue = [];
-  Song? currentSong;
 
   Duration position = Duration.zero;
   Duration duration = Duration.zero;
+
+  Song? currentSong;
+  Song? preloadedSong;
+
+  bool isSearching = false;
+  bool isBuffering = false;
 
   @override
   void initState() {
@@ -62,6 +65,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
 
     player.playerStateStream.listen((state) {
+      setState(() {
+        isBuffering =
+            state.processingState == ProcessingState.buffering ||
+            state.processingState == ProcessingState.loading;
+      });
+
       if (state.processingState == ProcessingState.completed) {
         playNext();
       }
@@ -106,7 +115,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
       if (currentSong == null) {
         playNext().then((_) => preloadNext());
       }
-
     } catch (e) {
       print("Search error: $e");
     } finally {
@@ -238,6 +246,21 @@ class _PlayerScreenState extends State<PlayerScreen> {
             SizedBox(height: 20),
 
             if (currentSong != null) ...[
+              if (isBuffering)...{
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 10),
+                    Text("Buffering..."),
+                  ],
+                ),
+                SizedBox(height: 20),
+              },
               CachedNetworkImage(
                 imageUrl: currentSong!.thumbnail,
                 height: 150,
