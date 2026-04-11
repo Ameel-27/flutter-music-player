@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:http/http.dart' as http;
-import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:convert';
 import 'dart:async';
 
@@ -175,7 +174,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
         playNext().then((_) => preloadNext());
       }
     } catch (e) {
-      print("Search error: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Search failed: $e")));
     } finally {
       setState(() => isSearching = false);
     }
@@ -322,10 +323,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     ),
                     SizedBox(height: 20),
                   },
-                  CachedNetworkImage(
-                    imageUrl: currentSong!.thumbnail,
+                  Image.network(
+                    currentSong!.thumbnail,
                     height: 150,
-                    errorWidget: (context, url, error) => Icon(Icons.error),
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return SizedBox(
+                        height: 150,
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      print("IMAGE ERROR: $error");
+                      return SizedBox(
+                        height: 150,
+                        child: Center(child: Icon(Icons.music_note, size: 50)),
+                      );
+                    },
                   ),
 
                   Text(
@@ -384,11 +399,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   itemBuilder: (context, index) {
                     final song = queue[index];
                     return ListTile(
-                      leading: CachedNetworkImage(
-                        imageUrl: song.thumbnail,
+                      leading: Image.network(
+                        song.thumbnail,
                         width: 65,
                         height: 65,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Icon(Icons.music_note),
                       ),
+
                       title: Text(
                         song.title,
                         maxLines: 2,
